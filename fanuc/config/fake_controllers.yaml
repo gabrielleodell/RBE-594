@@ -1,0 +1,30 @@
+controller_list:
+  - name: fake_Base_controller
+    type: $(arg fake_execution_type)
+    joints:
+      []
+  - name: fake_EE_controller
+    type: $(arg fake_execution_type)
+    joints:
+      []
+  - name: fake_J1_controller
+    type: $(arg fake_execution_type)
+    joints:
+      - J1_Motor
+  - name: fake_J2_controller
+    type: $(arg fake_execution_type)
+    joints:
+      - J2_Motor
+  - name: fake_J3_controller
+    type: $(arg fake_execution_type)
+    joints:
+      - J3_Motor
+  - name: fake_Delta_controller
+    type: $(arg fake_execution_type)
+    joints:
+      - J1_Motor
+      - J2_Motor
+      - J3_Motor
+initial:  # Define initial robot poses per group
+  - group: Delta
+    pose: Home
