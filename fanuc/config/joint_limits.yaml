@@ -8,27 +8,17 @@ default_acceleration_scaling_factor: 0.1
 # Specific joint properties can be changed with the keys [max_position, min_position, max_velocity, max_acceleration]
 # Joint limits can be turned off with [has_velocity_limits, has_acceleration_limits]
 joint_limits:
-  J1_Base:
-    has_velocity_limits: true
-    max_velocity: 1.57
-    has_acceleration_limits: false
-    max_acceleration: 0
-  J1_BaseL:
-    has_velocity_limits: true
-    max_velocity: 1.57
-    has_acceleration_limits: false
-    max_acceleration: 0
-  J1_ElbowL:
+  J1_Ankle:
     has_velocity_limits: false
     max_velocity: 0
     has_acceleration_limits: false
     max_acceleration: 0
-  J1_ElbowR:
+  J1_EE:
     has_velocity_limits: false
     max_velocity: 0
     has_acceleration_limits: false
     max_acceleration: 0
-  J1_Fixed:
+  J1_Knee:
     has_velocity_limits: false
     max_velocity: 0
     has_acceleration_limits: false
@@ -38,22 +28,17 @@ joint_limits:
     max_velocity: 1.57
     has_acceleration_limits: false
     max_acceleration: 0
-  J2_BaseL:
-    has_velocity_limits: true
-    max_velocity: 1.57
-    has_acceleration_limits: false
-    max_acceleration: 0
-  J2_ElbowL:
+  J1_Upper:
     has_velocity_limits: false
     max_velocity: 0
     has_acceleration_limits: false
     max_acceleration: 0
-  J2_ElbowR:
+  J2_Ankle:
     has_velocity_limits: false
     max_velocity: 0
     has_acceleration_limits: false
     max_acceleration: 0
-  J2_Fixed:
+  J2_Knee:
     has_velocity_limits: false
     max_velocity: 0
     has_acceleration_limits: false
@@ -63,22 +48,17 @@ joint_limits:
     max_velocity: 1.57
     has_acceleration_limits: false
     max_acceleration: 0
-  J3_BaseL:
-    has_velocity_limits: true
-    max_velocity: 1.57
-    has_acceleration_limits: false
-    max_acceleration: 0
-  J3_ElbowL:
+  J2_Upper:
     has_velocity_limits: false
     max_velocity: 0
     has_acceleration_limits: false
     max_acceleration: 0
-  J3_ElbowR:
+  J3_Ankle:
     has_velocity_limits: false
     max_velocity: 0
     has_acceleration_limits: false
     max_acceleration: 0
-  J3_Fixed:
+  J3_Knee:
     has_velocity_limits: false
     max_velocity: 0
     has_acceleration_limits: false
@@ -86,5 +66,10 @@ joint_limits:
   J3_Motor:
     has_velocity_limits: true
     max_velocity: 1.57
+    has_acceleration_limits: false
+    max_acceleration: 0
+  J3_Upper:
+    has_velocity_limits: false
+    max_velocity: 0
     has_acceleration_limits: false
     max_acceleration: 0

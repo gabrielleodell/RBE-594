@@ -164,35 +164,6 @@ planner_configs:
     stop_on_each_solution_improvement: 0  # stop the planner each time a solution improvement is found. Useful for debugging. Default: 0
     use_strict_queue_ordering: 0  # sort edges in the queue at the end of the batch (0) or after each rewiring (1). Default: 0
     find_approximate_solutions: 0  # track approximate solutions (1) or not (0). Default: 0
-Base:
-  planner_configs:
-    - AnytimePathShortening
-    - SBL
-    - EST
-    - LBKPIECE
-    - BKPIECE
-    - KPIECE
-    - RRT
-    - RRTConnect
-    - RRTstar
-    - TRRT
-    - PRM
-    - PRMstar
-    - FMT
-    - BFMT
-    - PDST
-    - STRIDE
-    - BiTRRT
-    - LBTRRT
-    - BiEST
-    - ProjEST
-    - LazyPRM
-    - LazyPRMstar
-    - SPARS
-    - SPARStwo
-    - AITstar
-    - ABITstar
-    - BITstar
 EE:
   planner_configs:
     - AnytimePathShortening
@@ -251,7 +222,7 @@ J1:
     - AITstar
     - ABITstar
     - BITstar
-  projection_evaluator: joints(J1_Motor,J1_Fixed)
+  projection_evaluator: joints(J1_Motor,J1_Upper)
   longest_valid_segment_fraction: 0.005
 J2:
   planner_configs:
@@ -282,7 +253,7 @@ J2:
     - AITstar
     - ABITstar
     - BITstar
-  projection_evaluator: joints(J2_Motor,J2_Fixed)
+  projection_evaluator: joints(J2_Motor,J2_Upper)
   longest_valid_segment_fraction: 0.005
 J3:
   planner_configs:
@@ -313,8 +284,37 @@ J3:
     - AITstar
     - ABITstar
     - BITstar
-  projection_evaluator: joints(J3_Motor,J3_Fixed)
+  projection_evaluator: joints(J3_Motor,J3_Upper)
   longest_valid_segment_fraction: 0.005
+Base:
+  planner_configs:
+    - AnytimePathShortening
+    - SBL
+    - EST
+    - LBKPIECE
+    - BKPIECE
+    - KPIECE
+    - RRT
+    - RRTConnect
+    - RRTstar
+    - TRRT
+    - PRM
+    - PRMstar
+    - FMT
+    - BFMT
+    - PDST
+    - STRIDE
+    - BiTRRT
+    - LBTRRT
+    - BiEST
+    - ProjEST
+    - LazyPRM
+    - LazyPRMstar
+    - SPARS
+    - SPARStwo
+    - AITstar
+    - ABITstar
+    - BITstar
 Delta:
   planner_configs:
     - AnytimePathShortening
