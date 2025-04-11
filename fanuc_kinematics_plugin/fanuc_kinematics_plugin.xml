@@ -1,0 +1,8 @@
+<library path="lib/libfanuc_kinematics_plugin">
+  <class name="fanuc_kinematics/FanucKinematicsPlugin" 
+         type="fanuc_kinematics::FanucKinematicsPlugin" 
+         base_class_type="kinematics::KinematicsBase">
+    <description> MoveIt plugin for solving the delta robot kinematics </description>
+  </class>
+</library>
+
