@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>conveyorbelt_gazebo</name>
+  <version>0.0.0</version>
+  <description>IFRA-Cranfield (Cranfield University, UK). Package: IFRA_ConveyorBelt - ConveyorBelt-Gazebo</description>
+
+  <author>Mikel Bueno Viso</author>
+  <maintainer email="Mikel.Bueno-Viso@cranfield.ac.uk">Mikel Bueno Viso</maintainer>
+  
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <exec_depend>gazebo_ros</exec_depend>
+  <export>
+    <gazebo_ros gazebo_model_path="${prefix}/models"/>
+  </export>
+</package>
