@@ -134,7 +134,7 @@
             </axis>
         </joint>
 
-        <plugin name="ros2_conveyorbelt_plugin" filename="libros2_conveyorbelt_plugin.so" >
+        <plugin name="ros_conveyorbelt_plugin" filename="libros_conveyorbelt_plugin.so" >
             <ros>
                 <namespace></namespace>
             </ros>
