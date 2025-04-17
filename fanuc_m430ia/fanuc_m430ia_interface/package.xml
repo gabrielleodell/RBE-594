@@ -24,6 +24,8 @@
   <build_export_depend>rospy</build_export_depend>
 
   <exec_depend>moveit_ros_planning_interface</exec_depend>
+  <exec_depend>fanuc_m430ia_support</exec_depend>
+  <exec_depend>fanuc_m430ia_moveitt</exec_depend>
   <exec_depend>moveit_ros_planning</exec_depend>
   <exec_depend>visualization_msgs</exec_depend>
   <exec_depend>geometry_msgs</exec_depend>
