@@ -4,10 +4,7 @@
 <!-- |    EDITING THIS FILE BY HAND IS NOT RECOMMENDED                                 | -->
 <!-- =================================================================================== -->
 <robot name="fanuc_m430ia">
-<<<<<<< HEAD
     <link name="world" />
-=======
->>>>>>> 516daff7858fdc1e2262ddd0c2bcfce5399bf9be
     <!-- links: main serial chain -->
     <link name="base_link">
         <visual>
