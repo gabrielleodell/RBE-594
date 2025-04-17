@@ -4,7 +4,10 @@
 <!-- |    EDITING THIS FILE BY HAND IS NOT RECOMMENDED                                 | -->
 <!-- =================================================================================== -->
 <robot name="fanuc_m430ia">
+<<<<<<< HEAD
     <link name="world" />
+=======
+>>>>>>> 516daff7858fdc1e2262ddd0c2bcfce5399bf9be
     <!-- links: main serial chain -->
     <link name="base_link">
         <visual>
@@ -138,10 +141,13 @@
             <inertia ixx="0.03" iyy="0.03" izz="0.03" ixy="0.0" ixz="0.0" iyz="0.0" />
         </inertial>
     </link>
+<<<<<<< HEAD
     <joint name="willsjoint" type="fixed">
         <parent link="world" />
         <child link="base_link" />
     </joint>
+=======
+>>>>>>> 516daff7858fdc1e2262ddd0c2bcfce5399bf9be
     <!-- joints: main serial chain -->
     <joint name="joint_1" type="revolute">
         <origin rpy="0 0 0" xyz="0 0 0.440" />
