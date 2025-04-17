@@ -1,0 +1,3 @@
+<launch>
+	<node name="interface" pkg="fanuc_m430ia_interface" type="interface.py" output="screen"/>
+</launch>

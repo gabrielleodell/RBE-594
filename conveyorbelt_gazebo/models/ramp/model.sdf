@@ -26,6 +26,15 @@
 #                                                                                       #
 # ===================================== COPYRIGHT ===================================== #
 
+# ===================================== COPYRIGHT ===================================== #
+#                                                                                       #
+#  The CAD file of the ConveyorBelt has been taken from the rokokoo/conveyor_demo ROS2  #
+#  package. The .urdf file has been converted to a Gazebo model (.srdf).                #                                                                  
+#                                                                                       #
+#  Copyright (C) 2021, GitHub/rokokoo                                                   #                                    
+#                                                                                       #
+# ===================================== COPYRIGHT ===================================== #
+
 # ======= CITE OUR WORK ======= #
 # You can cite our work with the following statement:
 # IFRA-Cranfield (2023) Gazebo-ROS2 Conveyor Belt Plugin. URL: https://github.com/IFRA-Cranfield/IFRA_ConveyorBelt.
@@ -34,55 +43,29 @@
 
 <sdf version="1.4">
 
-  <world name="default">
+    <model name="conveyor_belt_ramp">
+        <static>true</static>
 
-    <!-- WORLD COMPONENTS: STANDARD -->
+        <link name="ramp_visual">
+            <visual name="visual">
+                <geometry>
+                    <mesh>
+                        <scale>0.001 0.001 0.0009</scale>
+                        <uri>model://ramp/meshes/ramp.dae</uri>
+                    </mesh>
+                </geometry>
+            </visual>
+            <collision name="collision">
+                <origin xyz="0.0 0.0 0" rpy="0.0 0.0 0.0"/>
+                <geometry>
+                    <mesh>
+                        <scale>0.001 0.001 0.0009</scale>
+                        <uri>model://ramp/meshes/ramp.dae</uri>
+                    </mesh>
+                </geometry>
+            </collision>
+        </link>
 
-    <gravity>0 0 -9.8</gravity>
-
-    <include>
-      <uri>model://ground_plane</uri>
-    </include>
-
-    <include>
-      <uri>model://sun</uri>
-    </include>
-
-    <scene>
-      <shadows>0</shadows>
-    </scene>
-
-    <!-- Insert Conveyor Belt -->
-    <include>
-      <name>conveyor_belt</name>
-      <pose>0 0 0 0 0 0</pose>
-      <uri>model://conveyor_belt</uri>
-    </include>
-
-    <include>
-      <name>ramp_1</name>
-      <pose>0.4 0.1 0 0 0 0</pose>
-      <uri>model://ramp</uri>
-    </include>
-
-    <include>
-      <name>ramp_2</name>
-      <pose>0.4 -0.6 0 0 0 0</pose>
-      <uri>model://ramp</uri>
-    </include>
-
-    <include>
-      <name>ramp_3</name>
-      <pose>-0.4 0.5 0 0 0 3.14</pose>
-      <uri>model://ramp</uri>
-    </include>
-
-    <include>
-      <name>ramp_4</name>
-      <pose>-0.4 -0.2 0 0 0 3.14</pose>
-      <uri>model://ramp</uri>
-    </include>
-
-  </world>
+     </model>
 
 </sdf>
