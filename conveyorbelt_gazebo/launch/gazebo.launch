@@ -8,10 +8,23 @@
     <arg name="recording" value="false"/>
     <arg name="debug" value="false"/>
   </include>
-<param name="robot_description" textfile="$(find fanuc_m430ia_moveit)/config/gazebo_fanuc_m430ia.urdf"/>
- <node name="mybot_spawn" pkg="gazebo_ros" type="spawn_model" output="screen"
-        args="-urdf -param robot_description 
-                     -z 2.0 -model fanuc
-                     -P 3.1415 -J joint_3 1.4" respawn="false" /> 
+
+  <node name="spawn_box1" pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find conveyorbelt_gazebo)/urdf/box.urdf -model box1 -x 0.53 -y 0.0 -z 1.5"
+    respawn="false" output="screen" />
+
+  <node name="spawn_box2" pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find conveyorbelt_gazebo)/urdf/box.urdf -model box2 -x 0.53 -y 0.4 -z 1.5"
+    respawn="false" output="screen" />
+
+  <node name="spawn_box3" pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find conveyorbelt_gazebo)/urdf/box.urdf -model box3 -x 0.53 -y -0.4 -z 1.5"
+    respawn="false" output="screen" />
+
+  <node name="spawn_box4" pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find conveyorbelt_gazebo)/urdf/box.urdf -model box4 -x -0.53 -y 0.0 -z 1.5"
+    respawn="false" output="screen" />
+
+  <node name="spawn_box5" pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find conveyorbelt_gazebo)/urdf/box.urdf -model box5 -x -0.53 -y 0.4 -z 1.5"
+    respawn="false" output="screen" />
+
+  <node name="spawn_box6" pkg="gazebo_ros" type="spawn_model" args="-urdf -file $(find conveyorbelt_gazebo)/urdf/box.urdf -model box6 -x -0.53 -y -0.4 -z 1.5"
+    respawn="false" output="screen" />
 </launch>
 

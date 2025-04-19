@@ -61,25 +61,37 @@
 
     <include>
       <name>ramp_1</name>
-      <pose>0.4 0.1 0 0 0 0</pose>
+      <pose>0.4 -0.13 0 0 0 0</pose>
       <uri>model://ramp</uri>
     </include>
 
     <include>
       <name>ramp_2</name>
-      <pose>0.4 -0.6 0 0 0 0</pose>
+      <pose>-0.4 0.13 0 0 0 3.14</pose>
       <uri>model://ramp</uri>
     </include>
 
     <include>
       <name>ramp_3</name>
-      <pose>-0.4 0.5 0 0 0 3.14</pose>
+      <pose>0.4 0.27 0 0 0 0</pose>
       <uri>model://ramp</uri>
     </include>
 
     <include>
       <name>ramp_4</name>
-      <pose>-0.4 -0.2 0 0 0 3.14</pose>
+      <pose>0.4 -0.53 0 0 0 0</pose>
+      <uri>model://ramp</uri>
+    </include>
+
+    <include>
+      <name>ramp_5</name>
+      <pose>-0.4 0.53 0 0 0 3.14</pose>
+      <uri>model://ramp</uri>
+    </include>
+
+    <include>
+      <name>ramp_6</name>
+      <pose>-0.4 -0.27 0 0 0 3.14</pose>
       <uri>model://ramp</uri>
     </include>
 
