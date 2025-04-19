@@ -10,6 +10,7 @@
 
   <!-- ~~~~~~~~~~~~~ JOINTS ~~~~~~~~~~~~~~ -->
 
+  <link name="world" />
 
   <link name="base_link">
     <visual>
@@ -141,9 +142,9 @@
   <!-- ~~~~~~~~~~~~~ JOINTS ~~~~~~~~~~~~~~ -->
 
   <joint name="world_fixture" type="fixed">
-        <parent link="world" />
-        <child link="base_link" />
-    </joint>
+      <parent link="world" />
+      <child link="base_link" />
+  </joint>
 
   <joint name="joint_1" type="revolute">
     <origin rpy="0 0 0" xyz="0 0 0.440"/>     
@@ -415,7 +416,7 @@
 
 
   <!-- ~~~~~~~~~~~~~ PLUGINS ~~~~~~~~~~~~~ -->
-  
+
 
   <gazebo>
       <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
