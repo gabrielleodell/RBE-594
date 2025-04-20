@@ -1,0 +1,13 @@
+# Ignore large archive files
+*.zip
+
+# Ignore ONNX model files
+*.onnx
+
+# Ignore PyTorch model files
+*.pth
+*.pt
+
+# Ignore specific directories with large files (optional)
+vision/waste_vision/src/part1_complete_v2/
+vision/waste_vision/models/

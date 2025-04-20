@@ -1,0 +1,1 @@
+ClassifiedPoint[] points
