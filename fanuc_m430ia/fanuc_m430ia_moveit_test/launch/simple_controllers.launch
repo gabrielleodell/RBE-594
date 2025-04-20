@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Load joint controller configurations from YAML file to parameter server -->
+  <rosparam file="$(find fanuc_m430ia_moveit_test)/config/simple_controllers.yaml" command="load"/>
+
+  <!-- Load the controllers -->
+  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"
+    output="screen" args="joint1_controller joint2_controller joint3_controller joint4_controller joint5_controller left_finger_controller right_finger_controller"/>
+
+</launch>
