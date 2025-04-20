@@ -12,27 +12,28 @@ find_package(
 )
 
 catkin_package(
-  INCLUDE_DIRS 
+  INCLUDE_DIRS
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS  
-    moveit_ros_planning_interface
-    moveit_ros_planning
-    visualization_msgs
-    geometry_msgs
-    moveit_core
-    rospy
+  CATKIN_DEPENDS
+  moveit_ros_planning_interface
+  moveit_ros_planning
+  visualization_msgs
+  geometry_msgs
+  moveit_core
+  rospy
   DEPENDS system_lib
 )
 
 catkin_install_python(
   PROGRAMS
   src/interface.py
+  src/chutes.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 install(
-  DIRECTORY 
-    launch 
-  DESTINATION 
-    ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  DIRECTORY
+  launch
+  DESTINATION
+  ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
