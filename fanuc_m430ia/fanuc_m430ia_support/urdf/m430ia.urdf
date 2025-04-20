@@ -190,14 +190,6 @@
   <!-- ~~~~~~~~~~~~~ CONNECT ~~~~~~~~~~~~~ -->
 
 
-  <!-- Base link to work frame --> 
-  <link name="base"/>
-  <joint name="base_link-base" type="fixed">
-    <origin rpy="0 0 0" xyz="0 0 0.440"/>     
-    <parent link="base_link"/>
-    <child link="base"/>
-  </joint>
-
   <!-- Flange attachment point for EEF models --> 
   <link name="flange"/>
   <joint name="joint_5-flange" type="fixed">
@@ -262,14 +254,14 @@
       </geometry>
     </collision>
     <inertial>
-      <mass value="0.1" />
+      <mass value="0.01" />
       <origin xyz="0 0 0" rpy="0 0 0" />
-      <inertia ixx="0.03" iyy="0.03" izz="0.03" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0.0" ixz="0.0" iyz="0.0" />
     </inertial>
   </link>
 
-  <joint name="left_finger" type="prismatic">
-    <limit lower="-0.005" upper="0.02" effort="0" velocity="5"/>
+  <joint name="left_finger_joint" type="prismatic">
+    <limit lower="-0.005" upper="0.02" effort="10" velocity="5"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="ee_base"/>
     <child link="left_finger"/>
@@ -291,19 +283,18 @@
       </geometry>
     </collision>
     <inertial>
-      <mass value="0.1" />
+      <mass value="0.01" />
       <origin xyz="0 0 0" rpy="0 0 0" />
-      <inertia ixx="0.03" iyy="0.03" izz="0.03" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0.0" ixz="0.0" iyz="0.0" />
     </inertial>
   </link>
 
-  <joint name="right_finger" type="prismatic">
-    <limit lower="-0.02" upper="0.005" effort="0" velocity="5"/>
+  <joint name="right_finger_joint" type="prismatic">
+    <limit lower="-0.02" upper="0.005" effort="10" velocity="5"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="ee_base"/>
     <child link="right_finger"/>
     <axis xyz="1 0 0"/>
-    <mimic joint="left_finger" multiplier="-1" offset="0"/>
   </joint>
 
   <link name="ee_frame">
@@ -321,9 +312,9 @@
       </geometry>
     </collision>
     <inertial>
-      <mass value="0.1" />
+      <mass value="0.01" />
       <origin xyz="0 0 0" rpy="0 0 0" />
-      <inertia ixx="0.03" iyy="0.03" izz="0.03" ixy="0.0" ixz="0.0" iyz="0.0" />
+      <inertia ixx="0.01" iyy="0.01" izz="0.01" ixy="0.0" ixz="0.0" iyz="0.0" />
     </inertial>
   </link>
 
