@@ -56,43 +56,10 @@ class FanucInterface(object):
 
         # Tolerances
         self.arm.set_goal_tolerance(0.05)
-        self.arm.set_goal_joint_tolerance(0.05)
-        self.arm.set_goal_position_tolerance(0.05)
-        self.arm.set_goal_orientation_tolerance(0.05)
-
-
-    # Transform waste location from camera frame to robot frame
-    def transform(self, x0, y0):
-
-        # Shift X right
-        x = x0 - (0.915 / 2)
-        y = y0 - 0.25
-
-        return
 
 
     # Find chute coordinates based on chute_id number
     def get_chute(self, chute_id):
-
-        # Wills
-        # switch = {
-        #     0: [-0.55,  0.10],
-        #     1: [-0.60,  0.35],
-        #     2: [ 0.55,  0.35],
-        #     3: [ 0.55, -0.10],
-        #     4: [ 0.55, -0.40],
-        #     5: [-0.56, -0.32]
-        # }
-
-        # Original
-        # switch = {
-        #     0: [-0.53,  0.40],
-        #     1: [-0.43,  0.00],
-        #     2: [-0.53, -0.40],
-        #     3: [ 0.53,  0.40],
-        #     4: [ 0.53,  0.00],
-        #     5: [ 0.53, -0.40]
-        # }
 
         switch = {
             0: [-0.60, -0.40],      # Bottom right
@@ -100,7 +67,7 @@ class FanucInterface(object):
             2: [-0.60,  0.40],      # Top right
             3: [-0.60,  0.00],      # Middle right (was 5)
             4: [ 0.60,  0.00],      # Middle left
-            5: [ 0.60,  0.40]      # Top left (was 3)
+            5: [ 0.60,  0.40]       # Top left (was 3)
         }
 
         # Default to bin 0
@@ -218,18 +185,11 @@ class FanucInterface(object):
 
         # Move to chute
         print('Moving to chute')
-        # self.move_to_pose(chute[0], chute[1], self.z_chute - 0.1)
         self.move_to_pose(chute[0], chute[1], self.z_chute)
 
         # Release part 
         print('Releasing part')
         self.move_gripper('open')
-
-        # Move up to clear
-        # self.move_to_pose(chute[0], chute[1], self.z_chute - 0.1)
-
-        # Home robot
-        # self.go_to_preset('home')
 
 
     # Pick part from conveyor and place in bin
