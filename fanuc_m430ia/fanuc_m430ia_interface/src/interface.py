@@ -30,6 +30,9 @@ class FanucInterface(object):
 
         super(FanucInterface, self).__init__()
 
+        # Initialize cycle signal
+        self.pub = rospy.Publisher('/cycle_start', Bool, queue_size=10)
+
         # Initialize
         moveit_commander.roscpp_initialize(sys.argv)
 
@@ -56,6 +59,13 @@ class FanucInterface(object):
         # Tolerances
         self.arm.set_goal_tolerance(0.05)
 
+        # For logging
+        print('')
+
+        # Send ready signal
+        rospy.loginfo('Waiting for next batch...')
+        self.pub.publish(True)
+
 
     # Find chute coordinates based on chute_id number
     def get_chute(self, chute_id):
@@ -65,9 +75,9 @@ class FanucInterface(object):
             0: [-0.60, -0.40],      # Bottom right
             1: [ 0.60, -0.40],      # Bottom left
             2: [-0.60,  0.40],      # Top right
-            3: [-0.60,  0.00],      # Middle right (was 5)
+            3: [-0.60,  0.00],      # Middle right
             4: [ 0.60,  0.00],      # Middle left
-            5: [ 0.60,  0.40]       # Top left (was 3)
+            5: [ 0.60,  0.40]       # Top left (SPARE)
         }
 
         # Default to bin 0
@@ -218,6 +228,11 @@ class FanucInterface(object):
 # Callback for vision classifier
 def vision_callback(msg, robot):
 
+    rospy.loginfo('New batch received')
+
+    # Stop vision until batch is sorted
+    robot.pub.publish(False)
+
     # Parse the data
     for point in msg.points:
 
@@ -233,7 +248,12 @@ def vision_callback(msg, robot):
         # Sort the waste
         robot.sort(waste, chute_id)
 
-    rospy.loginfo('All waste in photo sorted')
+    rospy.loginfo('Batch complete')
+    print('')
+
+    # Ready for next batch
+    rospy.loginfo('Waiting for next batch...')
+    robot.pub.publish(True)
 
 
 # Callback for E-Stop button
@@ -246,11 +266,8 @@ def estop_callback(msg, robot):
     robot.gripper.stop()
 
     # Stop conveyor movement
-    stop = rospy.Publisher('CONVEYORPOWER', ConveyorBeltState, queue_size=10)
-    conveyor_state = ConveyorBeltState()
-    conveyor_state.enabled = False
-    conveyor_state.power = 0
-    stop.publish(conveyor_state)
+    conveyor = rospy.ServiceProxy('CONVEYORPOWER', ConveyorBeltControl)
+    conveyor(0.0)
 
     # Stop node
     rospy.signal_shutdown('E-STOP TRIGGERED')
@@ -277,11 +294,11 @@ if __name__ == '__main__':
         rospy.spin()
 
 
-    except rospy.ROSInterruptException:
-        print('Error occurred')
+    except Exception as e:
+        rospy.logerr(f'Exception occurred: {e}')
 
     except KeyboardInterrupt:
-        print('Keyboard interrupt')
+        rospy.logerr('Keyboard interrupt')
     
     finally:
         rospy.signal_shutdown('Node stopped')
