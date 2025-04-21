@@ -2,7 +2,9 @@
 
 import os
 import sys
+import time
 import rospy
+import pathlib
 
 # TF
 import tf2_ros
@@ -16,8 +18,11 @@ import geometry_msgs.msg
 import moveit_commander
 
 from std_msgs.msg import String
+from shape_msgs.msg import SolidPrimitive
 from geometry_msgs.msg import Point, Pose, PoseStamped
+from waste_vision.msg import PointArray, ClassifiedPoint
 from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
+from moveit_msgs.msg import Constraints, PositionConstraint, OrientationConstraint
 
 
 class FanucInterface(object):
@@ -26,15 +31,7 @@ class FanucInterface(object):
 
         super(FanucInterface, self).__init__()
 
-        # Sleep time for moving waste
-        self.sleep = 0.1
-
-        # Failure count
-        self.pick_counter = 0
-        self.place_counter = 0
-
         # Initialize
-        rospy.init_node('interface', anonymous=True)
         moveit_commander.roscpp_initialize(sys.argv)
 
         # Set up config
@@ -48,49 +45,71 @@ class FanucInterface(object):
         self.ee = self.arm.get_end_effector_link()   
         self.ee_links = self.robot.get_link_names('ee_links')
 
-        # Send robot to home
-        # self.arm.set_named_target('home')
-        # self.gripper.set_named_target('home')
-        # self.go_to()
+        # Home
+        self.move_gripper('home')
+        self.go_to_preset('home')
 
         # Fixed Z heights
-        self.z_pick = 1.30      
-        self.z_place = 1.25     
-        self.z_clear = 1.20     
-        self.z_conveyor = 1.30
+        self.z_waste = 1.10    
+        self.z_clear = 1.00   
+        self.z_chute = 0.95   
 
-        # Demo waste
-        self.glass = [-0.10, 0.20, 'glass']
-        self.plastic = [-0.10, 0.0, 'plastic']
-        self.alumninum = [0.10, 0.20, 'alumninum']
-        self.contaminate = [0.0, -0.28, 'contaminate']
-
+        # Tolerances
+        self.arm.set_goal_tolerance(0.05)
+        self.arm.set_goal_joint_tolerance(0.05)
+        self.arm.set_goal_position_tolerance(0.05)
+        self.arm.set_goal_orientation_tolerance(0.05)
 
 
-    # Spawns waste on conveyor 
-    def spawn_waste(self, waste):
+    # Transform waste location from camera frame to robot frame
+    def transform(self, x0, y0):
 
-        # Set position and orientation
-        pose = PoseStamped()
-        pose.header.frame_id = "base_link"
-        pose.pose.position.x = waste[0]
-        pose.pose.position.y = waste[1]
-        pose.pose.position.z = 1.40
-        pose.pose.orientation.w = 1.0
+        # Shift X right
+        x = x0 - (0.915 / 2)
+        y = y0 - 0.25
 
-        # Get mesh file
-        folder = os.path.dirname(os.path.abspath(__file__))
-        folder = os.path.dirname(folder)
-        folder = os.path.dirname(folder)
-        path = os.path.join(folder, 'fanuc_simulation', 'Mesh', waste[2])
+        return
 
-        # Add it to scene
-        self.scene.add_mesh(waste[2], pose, path, size=(0.1, 0.1, 0.1))
+
+    # Find chute coordinates based on chute_id number
+    def get_chute(self, chute_id):
+
+        # Wills
+        # switch = {
+        #     0: [-0.55,  0.10],
+        #     1: [-0.60,  0.35],
+        #     2: [ 0.55,  0.35],
+        #     3: [ 0.55, -0.10],
+        #     4: [ 0.55, -0.40],
+        #     5: [-0.56, -0.32]
+        # }
+
+        # Original
+        # switch = {
+        #     0: [-0.53,  0.40],
+        #     1: [-0.43,  0.00],
+        #     2: [-0.53, -0.40],
+        #     3: [ 0.53,  0.40],
+        #     4: [ 0.53,  0.00],
+        #     5: [ 0.53, -0.40]
+        # }
+
+        switch = {
+            0: [-0.60, -0.40],      # Bottom right
+            1: [ 0.60, -0.40],      # Bottom left
+            2: [-0.60,  0.40],      # Top right
+            3: [-0.60,  0.00],      # Middle right (was 5)
+            4: [ 0.60,  0.00],      # Middle left
+            5: [ 0.60,  0.40]      # Top left (was 3)
+        }
+
+        # Default to bin 0
+        return switch.get(chute_id, [-0.55,  0.10])
 
 
     # Go to target pose or state
     def go_to(self):
-        self.arm.go()                               # Wait for move to finish
+        self.arm.go()                               # Go to target
         self.arm.stop()                             # Stop movement
         self.arm.clear_pose_targets()               # Clean targets
 
@@ -109,8 +128,8 @@ class FanucInterface(object):
 
     # Move to desired position
     def move_to_position(self, x, y, z):
-        self.arm.set_position_target([x, y, z])
-        self.go_to()       
+        self.arm.set_position_target([x, y, z])     # Set target position
+        self.go_to()                                # Move to pose
 
 
     # Move to desired pose
@@ -123,10 +142,10 @@ class FanucInterface(object):
         pose.orientation.w = 1
 
         self.arm.set_pose_target(pose)
-        return self.go_to()                                                     
+        self.go_to()                                                     
 
 
-    # Plan and execute a path
+    # Plan and execute a vertical path
     def linear(self, z):
 
         # Current pose
@@ -136,18 +155,20 @@ class FanucInterface(object):
         # New pose
         pose = start
 
+        # Move down
         if z > z0:
             pose.position.z += (z - z0)
 
+        # Move up
         else:
             pose.position.z -= (z0 - z)
 
-        # Add waypoints
         waypoints = []
-        waypoints.append(start)
         waypoints.append(pose)
 
-        (plan, fraction) = self.arm.compute_cartesian_path(waypoints, 0.01, avoid_collisions=True)
+        self.arm.set_max_velocity_scaling_factor(0.1)
+
+        (plan, fraction) = self.arm.compute_cartesian_path(waypoints, 0.01, avoid_collisions=False)
 
         # Path found
         if fraction == 1.0:
@@ -155,103 +176,104 @@ class FanucInterface(object):
             path = True     
 
         else:
-            print('Failed to find path')
+            print('Failed to find path: ', fraction)
             path = False
 
         self.arm.stop()                 
         self.arm.clear_pose_targets()    
 
-        return path 
 
-
-    # Open the gripper
-    def open_gripper(self):
-        self.gripper.set_named_target('open')
-        self.gripper.go()                          
-
-
-    # Close the gripper
-    def close_gripper(self):
-        self.gripper.set_named_target('close')
-        self.gripper.go()  
+    # Move the gripper
+    def move_gripper(self, name):
+        self.gripper.set_named_target(name)
+        self.gripper.go() 
 
 
     # Pick part up from conveyor
     def pick(self, waste):   
 
         # Move to safe position above part
-        print('Moving above waste')
-        status1 = self.move_to_pose(waste[0], waste[1], self.z_clear)
+        print('Moving to position above')
+        self.move_to_pose(waste[0], waste[1], self.z_clear)
 
         # Open the gripper
         print('Opening gripper')
-        self.open_gripper()
+        self.move_gripper('open')
 
         # Move down to part
-        print('Moving down to waste')
-        status2 = self.linear(self.z_pick)
+        print('Moving to waste')
+        self.move_to_pose(waste[0], waste[1], self.z_waste)
 
         # Grab part
         print('Grabbing waste')
-        self.close_gripper()
+        self.move_gripper('close')
 
         # Move up to clear conveyor
         print('Moving up to clear')
-        status3 = self.linear(self.z_clear)
-
-        # Check if it succeeded 
-        return status1 and status2 and status3
+        self.move_to_pose(waste[0], waste[1], self.z_clear)
 
 
     # Place part in waste chute
-    def place(self, waste, chute):   
+    def place(self, chute):   
 
-        # Move to safe position above chute
-        print('Moving above chute')
-        status1 = self.move_to_pose(chute[0], chute[1], self.z_clear)
-
-        # Move down to chute
-        print('Moving down to chute')
-        status2 = self.linear(self.z_place)
+        # Move to chute
+        print('Moving to chute')
+        # self.move_to_pose(chute[0], chute[1], self.z_chute - 0.1)
+        self.move_to_pose(chute[0], chute[1], self.z_chute)
 
         # Release part 
         print('Releasing part')
-        self.open_gripper()
+        self.move_gripper('open')
 
-        # Move up to clear position
-        print('Moving up to clear')
-        status3 = self.linear(self.z_clear)
+        # Move up to clear
+        # self.move_to_pose(chute[0], chute[1], self.z_chute - 0.1)
 
         # Home robot
         # self.go_to_preset('home')
 
-        # Check if it succeeded
-        return status1 and status2 and status3
-
 
     # Pick part from conveyor and place in bin
-    def sort(self, waste, chute):
+    def sort(self, waste, chute_id):
 
-        # Try to pick
-        if self.pick(waste) == False:
-            self.pick_counter += 1
+        # Find chute location
+        chute = self.get_chute(chute_id)
 
-            print('Pick failed')
-            return False
+        # Start time
+        start = time.time()
 
-        print('Pick complete')
+        print(f'Picking part at {waste}')
+        self.pick(waste)
 
-        # Try to place
-        if self.place(waste, chute) == False:
-            self.place_counter += 1
+        print(f'Placing part in chute at {chute}')
+        self.place(chute)
 
-            print('Place failed')
-            return False
+        # End time
+        end = time.time()
 
-        print('Place complete')
+        # Cycle time
+        cycle = round(end - start, 2)
+        print(f'Cycle time: {cycle} sec')
 
-        # Sorting successful
-        return True
+
+# Callback for vision classifier
+def callback(msg, robot):
+
+    # Parse the data
+    for point in msg.points:
+
+        print(f'Received request to pick waste from {[point.x, point.y]} and place it in bin [{point.class_id}]')
+
+        # Transform points to robot frame
+        x = round(point.x - (0.915 / 2), 4)
+        y = round(point.y - 0.25, 4)
+
+        waste = [x, y]
+        chute_id = point.class_id
+
+        # Sort the waste
+        robot.sort(waste, chute_id)
+
+    print('All waste in photo sorted')
 
 
 # Main 
@@ -259,25 +281,24 @@ if __name__ == '__main__':
 
     try:
 
-        print('Start test')
-        test = FanucInterface()
+        # Initialize node
+        rospy.init_node('interface', anonymous=True)
 
-        # waste = [-0.337, -0.094, 'glass']
-        # chute = [-0.101, -0.068]
+        # Intiialize robot
+        robot = FanucInterface()
 
-        # waste = [-0.101, -0.068, 'glass']
-        # chute = [-0.55, 0.0]
+        # Initialize vision subscriber
+        rospy.Subscriber('trajectory_topic', PointArray, callback, robot)
+        rospy.spin()
 
-        waste = [-0.101, -0.068, 'glass']
-        chute = [-0.5, 0.5]
-
-        test.sort(waste, chute)
-
-
-        print('Test complete')
 
     except rospy.ROSInterruptException:
-        print('Error occured')
+        print('Error occurred')
 
     except KeyboardInterrupt:
         print('Keyboard interrupt')
+    
+    finally:
+        rospy.loginfo('Stopping node')
+        rospy.signal_shutdown('Node stopped')
+        sys.exit()
