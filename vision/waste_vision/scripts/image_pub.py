@@ -1,58 +1,76 @@
 #!/usr/bin/env python3
-import rospy
-from waste_vision.msg import CroppedObject
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
+
+import os
 import cv2
+import rospy
 import numpy as np
-from std_msgs.msg import String
+
 from pathlib import Path
+from cv_bridge import CvBridge
+from sensor_msgs.msg import Image
+from std_msgs.msg import String, Bool
+from waste_vision.msg import CroppedObject
 
 class TestCroppedObjectPublisher:
     def __init__(self):
+
         # Initialize the ROS node
         rospy.init_node('image_publisher', anonymous=True)
         
         # Initialize CvBridge
         self.bridge = CvBridge()
         
-        # Publisher for String messages
+        # Publisher for CroppedObject messages
         self.pub = rospy.Publisher('/image_topic', String, queue_size=10)
+
+        # Subscribe to robot signals
+        self.sub = rospy.Subscriber('/cycle_start', Bool, self.callback)
         
         # Get the script's directory
-        self.script_dir = Path(__file__).parent
+        self.script_dir = Path(__file__).parent.parent
         
         # Construct relative path to the test image
-        self.test_image_path = self.script_dir / "../src/part1_complete/multi_test.jpg"
+        self.image_folder = self.script_dir / "test_images/multi_test"
+
+        # Pull next timage
+        self.images = os.listdir(self.image_folder)
+        for idx in range(len(self.images)):
+            self.images[idx] = os.path.join(self.image_folder, self.images[idx])
         
-        # Check if the image file exists
-        if not self.test_image_path.exists():
-            rospy.logerr(f"Test image not found: {self.test_image_path}")
-            raise FileNotFoundError(f"Test image not found: {self.test_image_path}")
-        
-        print(f"Using test image: {self.test_image_path}")
-        
-        # Publish rate (Hz)
-        self.rate = rospy.Rate(0.1)  # 0.1 Hz (every 10 seconds)
-        
+        self.image_count = 0
+
         rospy.loginfo("Test CroppedObject Publisher Initialized")
+        rospy.loginfo("Waiting for ready signal...")
+
     
-    def publish(self):
-        while not rospy.is_shutdown():
-            try:
-                # Publish the image path as a String message
-                msg = str(self.test_image_path)
-                self.pub.publish(msg)
-                rospy.loginfo('Image path published.')
-                
-            except Exception as e:
-                rospy.logerr(f"Error publishing message: {e}")
-            
-            self.rate.sleep()
+    def publish(self, img_path):
+        try:
+            # Publish the image path as a String message
+            self.pub.publish(str(img_path))
+            rospy.loginfo('Image path published.')
+
+            self.image_count += 1
+
+            rospy.loginfo("Waiting for ready signal...")
+
+        except Exception as e:
+            rospy.logerr(f"Error publishing message: {e}")
+
+
+    def callback(self, msg):
+        ready_status = msg.data
+        if ready_status:
+            if self.image_count < len(self.images):
+                self.publish(self.images[self.image_count])
+            else:
+                rospy.logwarn("Out of images.")
+                return
+
 
 if __name__ == '__main__':
     try:
         publisher = TestCroppedObjectPublisher()
-        publisher.publish()
+        rospy.spin()
+
     except rospy.ROSInterruptException:
         pass

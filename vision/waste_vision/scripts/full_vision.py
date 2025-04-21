@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
-import rospy
+
+import os
 import cv2
-from waste_vision.msg import PointArray, ClassifiedPoint
+import json
+import rospy
 import torch
-from torch import nn
 import torchvision
 import torchvision.transforms as transforms
-from torchvision.models import resnet18, ConvNeXt_Small_Weights
-import json
-import os
+
+from torch import nn
+from pathlib import Path
 from ultralytics import YOLO
 from std_msgs.msg import String
-from pathlib import Path
-
 from yolo_crop import my_crop_with_loaded_model
-from generate_pick_path_with_classes import simulated_annealing, bins_px, start_position_px, return_path_with_class
+from waste_vision.msg import PointArray, ClassifiedPoint
 from convert_labels_to_world_centers import labels_to_world
+from torchvision.models import resnet18, ConvNeXt_Small_Weights
 from detect_and_crop_onnx import ONNXDetector, my_crop_with_onnx
+from generate_pick_path_with_classes import simulated_annealing, bins_px, start_position_px, return_path_with_class
+
 
 class VisionSystemNode:
     def __init__(self, classes: int, classifier: str, detector: str):
@@ -61,7 +63,6 @@ class VisionSystemNode:
         else:
             rospy.logerr('Detector must be "yolo" or "onnx".')
     
-
         # Load classifiers based on number of classes and model type
         if classes == 4:
             if classifier == 'res':
@@ -80,8 +81,6 @@ class VisionSystemNode:
                 self.classifier_model, self.classifier_labels = self.load_res_model(num_classes=self.num_classes)
             elif classifier == 'eff':
                 self.classifier_model, self.classifier_labels = self.load_eff_model(num_classes=self.num_classes)
-
-
 
         # This subscribes to the image topic which is just a message with the path to the saved warp-D image
         self.sub = rospy.Subscriber('/image_topic', String, self.callback)
@@ -123,8 +122,6 @@ class VisionSystemNode:
                 )
 
             class_mapping = checkpoint.get('class_mapping', {})
-            # Convert keys to string to handle potential integer/string key differences
-            # print(f"Classes: {class_names}")
             
             # Load model weights from checkpoint
             model.load_state_dict(checkpoint['model_state_dict'])
@@ -138,7 +135,6 @@ class VisionSystemNode:
             rospy.logerr(f"Failed to load ResNet model: {e}")
             return None, None
         
-
 
     def load_eff_model(self, num_classes):
         try:
@@ -166,17 +162,20 @@ class VisionSystemNode:
                 
                 class_mapping = checkpoint.get('class_mapping', {})
                 
+                # Create a fresh model
                 model = torchvision.models.efficientnet_b0(weights=torchvision.models.EfficientNet_B0_Weights.IMAGENET1K_V1)
                 model.classifier = nn.Sequential(
                     nn.Dropout(p=0.3, inplace=True),
                     nn.Linear(in_features=1280, out_features=num_classes)
                 )
                 
+                # Extract only the classifier weights from the checkpoint
                 classifier_weights = {}
                 for key, value in checkpoint['model_state_dict'].items():
                     if key.startswith('classifier'):
                         classifier_weights[key] = value
                 
+                # Load only the classifier parameters
                 model_dict = model.state_dict()
                 model_dict.update(classifier_weights)
                 model.load_state_dict(model_dict, strict=False)
@@ -187,14 +186,15 @@ class VisionSystemNode:
             model.eval()
 
             class_mappings = self.load_class_mappings(path=str(self.script_dir / model_dir))
-            rospy.loginfo('EfficientNet model loaded.')
+
+            print('EfficientNet model loaded.')
             return model, class_mappings
-        
         
         except Exception as e:
             rospy.logerr(f"Failed to load EfficientNet model: {e}")
             return None, None
         
+
     def load_conv4_model(self):
         try:
             model_dir = "../models/convnext/best_conv_4"
@@ -203,24 +203,25 @@ class VisionSystemNode:
                 rospy.logerr(f"ConvNeXt model file not found: {model_path}")
                 raise FileNotFoundError(f"ConvNeXt model file not found: {model_path}")
             checkpoint = torch.load(model_path, map_location=torch.device(self.device))
-            
+
             class_mapping = checkpoint.get('class_mapping', {})
-            class_names = [class_mapping[i] for i in range(len(class_mapping))]
-            
+            class_names = [class_mapping[i] for i in range(len(class_mapping))]   
+
             model = torchvision.models.convnext_small(weights=ConvNeXt_Small_Weights.IMAGENET1K_V1)
             num_ftrs = model.classifier[2].in_features
             model.classifier[2] = nn.Linear(num_ftrs, len(class_names))
-            
+           
             model.load_state_dict(checkpoint['model_state_dict'])
             model.to(self.device)
             model.eval()
 
             class_mappings = self.load_class_mappings(path=str(self.script_dir / model_dir))
-            rospy.loginfo('ConvNeXt model loaded.')
+
+            rospy.loginfo('conv_4 model loaded.')
             return model, class_mappings
         
         except Exception as e:
-            rospy.logerr(f"Failed to load ConvNeXt model: {e}")
+            rospy.logerr(f"Failed to load eff_4 model: {e}")
             return None, None
 
         
@@ -238,6 +239,7 @@ class VisionSystemNode:
             rospy.logerr(f"Failed to load class mappings: {e}")
             return None
 
+
     def preprocess_image(self, cv_image):
         # Convert BGR  to RGB
         img = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
@@ -245,7 +247,8 @@ class VisionSystemNode:
         img = self.transform(img)
         img = img.unsqueeze(0)
         return img
-    
+
+
     def classify_images(self, images: list, boxes: list):
         if self.classifier_model is None:
                     rospy.logerr('Classifier model not loaded.')
@@ -261,7 +264,10 @@ class VisionSystemNode:
                 with torch.no_grad():
                     outputs = self.classifier_model(processed_image)
                     _, predicted_class_idx = torch.max(outputs, 1)
-                    # predicted_class = self.classifier_labels[predicted_class_idx.item()]
+                    
+                    # cv2.imshow(f'Predicted Class: {predicted_class}', img)
+                    # cv2.waitKey(0)
+                    # cv2.destroyWindow(f'Predicted Class: {predicted_class}')
                     
                     yolo_format_labels.append([predicted_class_idx.item(), boxes[idx][0], boxes[idx][1], boxes[idx][2], boxes[idx][3]])
 
@@ -269,7 +275,8 @@ class VisionSystemNode:
                 rospy.loginfo(f"Error classifying image.")
 
         return yolo_format_labels
-    
+
+
     def all_classifier(self, images:list, boxes:list):
         if self.res_model is None or self.conv_model is None or self.eff_model is None:
             rospy.logerr("One of the classifier models is not loaded. ")
@@ -306,6 +313,7 @@ class VisionSystemNode:
 
         return yolo_format_labels
 
+
     def callback(self, msg):
        image_path = msg.data
        rospy.loginfo("Image received.")
@@ -323,7 +331,6 @@ class VisionSystemNode:
        objects = labels_to_world(yolo_format_labels)
        path = simulated_annealing(objects=objects, bins=bins_px, start_pos=start_position_px)
        classes_and_positions = return_path_with_class(path)
-    #    print(classes_and_positions)
 
        trajectory = PointArray()
        trajectory.points = [ClassifiedPoint(class_id=cls, x=x, y=y) for (cls, x, y) in classes_and_positions] 
@@ -335,6 +342,7 @@ class VisionSystemNode:
     def run(self):
         rospy.spin()
 
+
 if __name__ == "__main__":
     try:
         # For the vision system you can set classes equal to 4 or 5 depending if we want to include contaminants or not
@@ -342,7 +350,7 @@ if __name__ == "__main__":
         # which will make the classifier the respective classification model and 'all' will use all 3 and be redundant
         # If you use 5 classes you can only use 'res' or 'eff''
         # For the detector you can use 'yolo' or 'onnx'
-        node = VisionSystemNode(classes=4, classifier='all', detector='onnx')
+        node = VisionSystemNode(classes=4, classifier='res', detector='onnx')
         node.run()
 
     except rospy.ROSInterruptException:

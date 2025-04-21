@@ -9,10 +9,10 @@ WORLD_WIDTH_M = 0.9
 PIXEL_TO_MM = WORLD_WIDTH_M / IMG_WIDTH
 
 bins_px = {
-    0: np.array([0, 0]),
+    0: np.array([0, 0]),    
     1: np.array([IMG_WIDTH - 1, 0]),
     2: np.array([0, IMG_HEIGHT - 1]),
-    3: np.array([IMG_WIDTH - 1, IMG_HEIGHT - 1]),
+    3: np.array([0, IMG_HEIGHT // 2]),
     4: np.array([IMG_WIDTH - 1, IMG_HEIGHT // 2])
 }
 
