@@ -6,6 +6,7 @@ from cv_bridge import CvBridge
 import cv2
 import numpy as np
 from std_msgs.msg import String
+from pathlib import Path
 
 class TestCroppedObjectPublisher:
     def __init__(self):
@@ -15,28 +16,34 @@ class TestCroppedObjectPublisher:
         # Initialize CvBridge
         self.bridge = CvBridge()
         
-        # Publisher for CroppedObject messages
+        # Publisher for String messages
         self.pub = rospy.Publisher('/image_topic', String, queue_size=10)
         
-        # Load a test image (update path or use dummy image)
-        self.test_image_path = '/home/nddixon/catkin_ws/src/waste_vision/src/part1_complete/multi_test.jpg'  # Update with actual path
-
+        # Get the script's directory
+        self.script_dir = Path(__file__).parent
+        
+        # Construct relative path to the test image
+        self.test_image_path = self.script_dir / "../src/part1_complete/multi_test.jpg"
+        
+        # Check if the image file exists
+        if not self.test_image_path.exists():
+            rospy.logerr(f"Test image not found: {self.test_image_path}")
+            raise FileNotFoundError(f"Test image not found: {self.test_image_path}")
+        
+        print(f"Using test image: {self.test_image_path}")
+        
         # Publish rate (Hz)
-        self.rate = rospy.Rate(0.1)  
+        self.rate = rospy.Rate(0.1)  # 0.1 Hz (every 10 seconds)
         
         rospy.loginfo("Test CroppedObject Publisher Initialized")
-    
-
     
     def publish(self):
         while not rospy.is_shutdown():
             try:
-                # Create CroppedObject message
-                msg = self.test_image_path
-
-                # Publish message
+                # Publish the image path as a String message
+                msg = str(self.test_image_path)
                 self.pub.publish(msg)
-                rospy.loginfo('Image published.')
+                rospy.loginfo('Image path published.')
                 
             except Exception as e:
                 rospy.logerr(f"Error publishing message: {e}")

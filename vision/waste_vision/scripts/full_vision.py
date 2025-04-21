@@ -11,6 +11,7 @@ import json
 import os
 from ultralytics import YOLO
 from std_msgs.msg import String
+from pathlib import Path
 
 from yolo_crop import my_crop_with_loaded_model
 from generate_pick_path_with_classes import simulated_annealing, bins_px, start_position_px, return_path_with_class
@@ -28,6 +29,8 @@ class VisionSystemNode:
         self.detector_type = detector
         self.num_classes = classes
 
+        self.script_dir = Path(__file__).parent
+
         # preprocessing transforms
         self.transform = transforms.Compose([
             transforms.ToPILImage(),
@@ -38,12 +41,22 @@ class VisionSystemNode:
 
         # Load detection model
         if self.detector_type == 'yolo':
-            yolo_path = "/home/nddixon/catkin_ws/src/waste_vision/models/yolo/pm_28model.pt"   
-            self.yolo_model = YOLO(yolo_path)
-            rospy.loginfo('YOLO model loaded.')
+            yolo_path = "../models/yolo/pm_28model.pt"
+            model_path = self.script_dir / yolo_path
+            print(model_path)
+            self.yolo_model = YOLO(model_path)
+            if self.yolo_model:
+                rospy.loginfo('YOLO model loaded.')
+            else:
+                rospy.logerr('Error loading YOLO model.')
         elif self.detector_type == 'onnx':
-            onnx_path = "/home/nddixon/catkin_ws/src/waste_vision/models/onnx/pm_28model.onnx"
-            self.onnx_model = ONNXDetector(onnx_path)
+            onnx_path = "../models/onnx/pm_28model.onnx"
+            model_path = self.script_dir / onnx_path
+            if not model_path.exists():
+                rospy.logerr(f"ONNX model file not found: {model_path}")
+                raise FileNotFoundError(f"ONNX model file not found: {model_path}")
+            print(f"Loading ONNX model from: {model_path}")
+            self.onnx_model = ONNXDetector(model_path)
             rospy.loginfo('Onnx model loaded.')
         else:
             rospy.logerr('Detector must be "yolo" or "onnx".')
@@ -81,8 +94,12 @@ class VisionSystemNode:
     def load_res_model(self, num_classes):
         try:
             if num_classes == 4:
-                model_dir = "/home/nddixon/catkin_ws/src/waste_vision/models/resnet/resnet_4"
-                checkpoint = torch.load(os.path.join(model_dir, "res_best.pth"), map_location=torch.device(self.device))
+                model_dir = "../models/resnet/resnet_4"
+                model_path = self.script_dir / model_dir / 'res_best.pth'
+                if not model_path.exists():
+                    rospy.logerr(f'ResNet_4 model not found at {model_path}')
+                    raise FileNotFoundError('ResNet model not found.')
+                checkpoint = torch.load(model_path, map_location=torch.device(self.device))
                 
                 # Create model with simple fc layer for 4-class model
                 model = torchvision.models.resnet18()
@@ -90,8 +107,12 @@ class VisionSystemNode:
                 model.fc = nn.Linear(num_ftrs, num_classes)
                 
             elif num_classes == 5:
-                model_dir = "/home/nddixon/catkin_ws/src/waste_vision/models/resnet/resnet_5/res_5_best"
-                checkpoint = torch.load(os.path.join(model_dir, "res_best_5.pth"), map_location=torch.device(self.device))
+                model_dir = "../models/resnet/resnet_5"
+                model_path = self.script_dir / model_dir / "res_best_5.pth"
+                if not model_path.exists():
+                    rospy.logerr(f"ResNet model file not found: {model_path}")
+                    raise FileNotFoundError(f"ResNet model file not found: {model_path}")
+                checkpoint = torch.load(model_path, map_location=torch.device(self.device))
                 
                 # Create model with sequential fc layer for 5-class model
                 model = torchvision.models.resnet18()
@@ -103,7 +124,6 @@ class VisionSystemNode:
 
             class_mapping = checkpoint.get('class_mapping', {})
             # Convert keys to string to handle potential integer/string key differences
-            class_names = [class_mapping[i] for i in range(len(class_mapping))]
             # print(f"Classes: {class_names}")
             
             # Load model weights from checkpoint
@@ -111,7 +131,7 @@ class VisionSystemNode:
             model.to(self.device)
             model.eval()
 
-            class_mappings = self.load_class_mappings(path=model_dir)
+            class_mappings = self.load_class_mappings(path=str(self.script_dir / model_dir))
             rospy.loginfo('Resnet model loaded.')
             return model, class_mappings
         except Exception as e:
@@ -123,9 +143,12 @@ class VisionSystemNode:
     def load_eff_model(self, num_classes):
         try:
             if num_classes == 4:
-                # Load the checkpoint for 4-class model
-                model_dir = "/home/nddixon/catkin_ws/src/waste_vision/models/eff_net/eff_net4"
-                checkpoint = torch.load(os.path.join(model_dir, "eff_best_4.pth"), map_location=torch.device(self.device))
+                model_dir = "../models/eff_net/eff_net4"
+                model_path = self.script_dir / model_dir / "eff_best_4.pth"
+                if not model_path.exists():
+                    rospy.logerr(f"EfficientNet model file not found: {model_path}")
+                    raise FileNotFoundError(f"EfficientNet model file not found: {model_path}")
+                checkpoint = torch.load(model_path, map_location=torch.device(self.device))
                 
                 # Create model with same architecture
                 model = torchvision.models.efficientnet_b0(weights=None)
@@ -134,30 +157,26 @@ class VisionSystemNode:
                     nn.Linear(in_features=1280, out_features=num_classes)
                 )
             elif num_classes == 5:
-                model_dir = "/home/nddixon/catkin_ws/src/waste_vision/models/eff_net/eff_best_5"
-                checkpoint = torch.load(os.path.join(model_dir, "eff_best.pth"), map_location=torch.device(self.device))
+                model_dir = "../models/eff_net/eff_best_5"
+                model_path = self.script_dir / model_dir / "eff_best.pth"
+                if not model_path.exists():
+                    rospy.logerr(f"EfficientNet model file not found: {model_path}")
+                    raise FileNotFoundError(f"EfficientNet model file not found: {model_path}")
+                checkpoint = torch.load(model_path, map_location=torch.device(self.device))
                 
-                # We need to extract ONLY the classifier part from the checkpoint
-                # and not try to load the feature extractor part
                 class_mapping = checkpoint.get('class_mapping', {})
-                # Convert keys to string to handle potential integer/string key differences
-                class_names = [class_mapping[i] for i in range(len(class_mapping))]
-                print(f"Classes for EfficientNet: {class_names}")
                 
-                # Create a fresh model
                 model = torchvision.models.efficientnet_b0(weights=torchvision.models.EfficientNet_B0_Weights.IMAGENET1K_V1)
                 model.classifier = nn.Sequential(
                     nn.Dropout(p=0.3, inplace=True),
                     nn.Linear(in_features=1280, out_features=num_classes)
                 )
                 
-                # Extract only the classifier weights from the checkpoint
                 classifier_weights = {}
                 for key, value in checkpoint['model_state_dict'].items():
                     if key.startswith('classifier'):
                         classifier_weights[key] = value
                 
-                # Load only the classifier parameters
                 model_dict = model.state_dict()
                 model_dict.update(classifier_weights)
                 model.load_state_dict(model_dict, strict=False)
@@ -167,10 +186,10 @@ class VisionSystemNode:
             model.to(self.device)
             model.eval()
 
-            class_mappings = self.load_class_mappings(path=model_dir)
-
-            print('EfficientNet model loaded.')
+            class_mappings = self.load_class_mappings(path=str(self.script_dir / model_dir))
+            rospy.loginfo('EfficientNet model loaded.')
             return model, class_mappings
+        
         
         except Exception as e:
             rospy.logerr(f"Failed to load EfficientNet model: {e}")
@@ -178,44 +197,46 @@ class VisionSystemNode:
         
     def load_conv4_model(self):
         try:
-            # Load the checkpoint
-            model_dir = "/home/nddixon/catkin_ws/src/waste_vision/models/convnext/best_conv_4"
-            checkpoint = torch.load(os.path.join(model_dir, "conv_best_4.pth"), map_location=torch.device(self.device))    # Extract the class mapping from the checkpoint
+            model_dir = "../models/convnext/best_conv_4"
+            model_path = self.script_dir / model_dir / "conv_best_4.pth"
+            if not model_path.exists():
+                rospy.logerr(f"ConvNeXt model file not found: {model_path}")
+                raise FileNotFoundError(f"ConvNeXt model file not found: {model_path}")
+            checkpoint = torch.load(model_path, map_location=torch.device(self.device))
+            
             class_mapping = checkpoint.get('class_mapping', {})
-
-            # Convert keys to string to handle potential integer/string key differences
-            class_names = [class_mapping[i] for i in range(len(class_mapping))]    # Create a reverse mapping from class name to index
-            # label_to_idx = {name: i for i, name in enumerate(class_names)}    # print(f"Classes: {class_names}")    # Create model with the right number of classes
+            class_names = [class_mapping[i] for i in range(len(class_mapping))]
+            
             model = torchvision.models.convnext_small(weights=ConvNeXt_Small_Weights.IMAGENET1K_V1)
             num_ftrs = model.classifier[2].in_features
             model.classifier[2] = nn.Linear(num_ftrs, len(class_names))
-            # num_ftrs = model.fc.in_features
-            # model.fc = nn.Linear(num_ftrs, len(class_names))    # Load model weights from checkpoint
+            
             model.load_state_dict(checkpoint['model_state_dict'])
             model.to(self.device)
             model.eval()
 
-            class_mappings = self.load_class_mappings(path=model_dir)
-
-            rospy.loginfo('conv_4 model loaded.')
+            class_mappings = self.load_class_mappings(path=str(self.script_dir / model_dir))
+            rospy.loginfo('ConvNeXt model loaded.')
             return model, class_mappings
         
         except Exception as e:
-            rospy.logerr(f"Failed to load eff_4 model: {e}")
-            return None
+            rospy.logerr(f"Failed to load ConvNeXt model: {e}")
+            return None, None
 
         
     def load_class_mappings(self, path):
-        # Load class mappings from JSON
-        class_mapping_path = os.path.join(path, "class_mapping.json")  
+        class_mapping_path = Path(path) / "class_mapping.json"
         try:
+            if not class_mapping_path.exists():
+                rospy.logerr(f"Class mapping file not found: {class_mapping_path}")
+                raise FileNotFoundError(f"Class mapping file not found: {class_mapping_path}")
             with open(class_mapping_path, 'r') as f:
                 class_mapping = json.load(f)
-            # Convert indices (stored as strings in JSON) to integers and sort by index
             class_labels = [class_mapping[str(i)] for i in range(len(class_mapping))]
             return class_labels
         except Exception as e:
             rospy.logerr(f"Failed to load class mappings: {e}")
+            return None
 
     def preprocess_image(self, cv_image):
         # Convert BGR  to RGB
@@ -321,7 +342,8 @@ if __name__ == "__main__":
         # which will make the classifier the respective classification model and 'all' will use all 3 and be redundant
         # If you use 5 classes you can only use 'res' or 'eff''
         # For the detector you can use 'yolo' or 'onnx'
-        node = VisionSystemNode(classes=4, classifier='res', detector='onnx')
+        node = VisionSystemNode(classes=4, classifier='all', detector='onnx')
         node.run()
+
     except rospy.ROSInterruptException:
         pass
