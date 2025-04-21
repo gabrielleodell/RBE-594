@@ -6,6 +6,7 @@ find_package(
   moveit_ros_planning_interface
   moveit_ros_planning
   visualization_msgs
+  conveyorbelt_msgs
   geometry_msgs
   moveit_core
   rospy
@@ -28,6 +29,7 @@ catkin_install_python(
   PROGRAMS
   src/interface.py
   src/chutes.py
+  src/estop.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
