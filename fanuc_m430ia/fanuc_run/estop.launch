@@ -1,0 +1,3 @@
+<launch>
+	<node name="estop" pkg="fanuc_m430ia_interface" type="estop.py" output="screen"/>
+</launch>
