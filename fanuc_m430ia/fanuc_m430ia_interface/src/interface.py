@@ -17,12 +17,11 @@ import geometry_msgs.msg
 # MoveIt
 import moveit_commander
 
-from std_msgs.msg import String
-from shape_msgs.msg import SolidPrimitive
+from std_msgs.msg import Bool, String
+from actionlib_msgs.msg import GoalID
+from conveyorbelt_msgs.msg import ConveyorBeltState
 from geometry_msgs.msg import Point, Pose, PoseStamped
 from waste_vision.msg import PointArray, ClassifiedPoint
-from moveit_msgs.srv import GetPositionIK, GetPositionIKRequest
-from moveit_msgs.msg import Constraints, PositionConstraint, OrientationConstraint
 
 
 class FanucInterface(object):
@@ -61,6 +60,7 @@ class FanucInterface(object):
     # Find chute coordinates based on chute_id number
     def get_chute(self, chute_id):
 
+        # Original
         switch = {
             0: [-0.60, -0.40],      # Bottom right
             1: [ 0.60, -0.40],      # Bottom left
@@ -143,7 +143,7 @@ class FanucInterface(object):
             path = True     
 
         else:
-            print('Failed to find path: ', fraction)
+            rospy.loginfo('Failed to find path: ', fraction)
             path = False
 
         self.arm.stop()                 
@@ -160,23 +160,23 @@ class FanucInterface(object):
     def pick(self, waste):   
 
         # Move to safe position above part
-        print('Moving to position above')
+        # rospy.loginfo('Moving to position above')
         self.move_to_pose(waste[0], waste[1], self.z_clear)
 
         # Open the gripper
-        print('Opening gripper')
+        # rospy.loginfo('Opening gripper')
         self.move_gripper('open')
 
         # Move down to part
-        print('Moving to waste')
+        # rospy.loginfo('Moving to waste')
         self.move_to_pose(waste[0], waste[1], self.z_waste)
 
         # Grab part
-        print('Grabbing waste')
+        # rospy.loginfo('Grabbing waste')
         self.move_gripper('close')
 
         # Move up to clear conveyor
-        print('Moving up to clear')
+        # rospy.loginfo('Moving up to clear')
         self.move_to_pose(waste[0], waste[1], self.z_clear)
 
 
@@ -184,11 +184,11 @@ class FanucInterface(object):
     def place(self, chute):   
 
         # Move to chute
-        print('Moving to chute')
+        # rospy.loginfo('Moving to chute')
         self.move_to_pose(chute[0], chute[1], self.z_chute)
 
         # Release part 
-        print('Releasing part')
+        # rospy.loginfo('Releasing part')
         self.move_gripper('open')
 
 
@@ -201,10 +201,10 @@ class FanucInterface(object):
         # Start time
         start = time.time()
 
-        print(f'Picking part at {waste}')
+        rospy.loginfo(f'Picking part at {waste}')
         self.pick(waste)
 
-        print(f'Placing part in chute at {chute}')
+        rospy.loginfo(f'Placing part in chute at {chute}')
         self.place(chute)
 
         # End time
@@ -212,16 +212,16 @@ class FanucInterface(object):
 
         # Cycle time
         cycle = round(end - start, 2)
-        print(f'Cycle time: {cycle} sec')
+        rospy.loginfo(f'Cycle time: {cycle} sec')
 
 
 # Callback for vision classifier
-def callback(msg, robot):
+def vision_callback(msg, robot):
 
     # Parse the data
     for point in msg.points:
 
-        print(f'Received request to pick waste from {[point.x, point.y]} and place it in bin [{point.class_id}]')
+        rospy.loginfo(f'Received request to pick waste from {[point.x, point.y]} and place it in bin [{point.class_id}]')
 
         # Transform points to robot frame
         x = round(point.x - (0.915 / 2), 4)
@@ -233,7 +233,27 @@ def callback(msg, robot):
         # Sort the waste
         robot.sort(waste, chute_id)
 
-    print('All waste in photo sorted')
+    rospy.loginfo('All waste in photo sorted')
+
+
+# Callback for E-Stop button
+def estop_callback(msg, robot):
+
+    rospy.loginfo('E-STOP TRIGGERED')
+
+    # Stop robot movement
+    robot.arm.stop()
+    robot.gripper.stop()
+
+    # Stop conveyor movement
+    stop = rospy.Publisher('CONVEYORPOWER', ConveyorBeltState, queue_size=10)
+    conveyor_state = ConveyorBeltState()
+    conveyor_state.enabled = False
+    conveyor_state.power = 0
+    stop.publish(conveyor_state)
+
+    # Stop node
+    rospy.signal_shutdown('E-STOP TRIGGERED')
 
 
 # Main 
@@ -247,8 +267,13 @@ if __name__ == '__main__':
         # Intiialize robot
         robot = FanucInterface()
 
+        # Initialize e-stop subscriber
+        rospy.Subscriber('estop', Bool, estop_callback, robot)
+
         # Initialize vision subscriber
-        rospy.Subscriber('trajectory_topic', PointArray, callback, robot)
+        rospy.Subscriber('trajectory_topic', PointArray, vision_callback, robot)
+
+        # Refresh
         rospy.spin()
 
 
@@ -259,6 +284,5 @@ if __name__ == '__main__':
         print('Keyboard interrupt')
     
     finally:
-        rospy.loginfo('Stopping node')
         rospy.signal_shutdown('Node stopped')
         sys.exit()
