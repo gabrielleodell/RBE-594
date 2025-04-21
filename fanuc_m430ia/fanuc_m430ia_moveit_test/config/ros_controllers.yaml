@@ -6,6 +6,8 @@ M430ia_controller:
     - joint_3
     - joint_4
     - joint_5
+  constraints:
+    stopped_velocity_tolerance: 0
   gains:
     joint_1:
       p: 400
@@ -37,6 +39,8 @@ gripper_controller:
   joints:
     - left_finger_joint
     - right_finger_joint
+  constraints:
+    stopped_velocity_tolerance: 0
   gains:
     left_finger_joint:
       p: 100
