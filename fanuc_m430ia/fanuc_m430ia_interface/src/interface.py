@@ -20,6 +20,7 @@ import moveit_commander
 from std_msgs.msg import Bool, String
 from actionlib_msgs.msg import GoalID
 from conveyorbelt_msgs.msg import ConveyorBeltState
+from conveyorbelt_msgs.srv import ConveyorBeltControl
 from geometry_msgs.msg import Point, Pose, PoseStamped
 from waste_vision.msg import PointArray, ClassifiedPoint
 
@@ -80,8 +81,8 @@ class FanucInterface(object):
             5: [ 0.60,  0.40]       # Top left (SPARE)
         }
 
-        # Default to bin 0
-        return switch.get(chute_id, [-0.55,  0.10])
+        # Default to bin 5
+        return switch.get(chute_id, [0.60,  0.40])
 
 
     # Go to target pose or state
@@ -122,7 +123,7 @@ class FanucInterface(object):
         self.go_to()                                                     
 
 
-    # Plan and execute a vertical path
+    # Plan and execute a linear path
     def linear(self, z):
 
         # Current pose
@@ -170,23 +171,18 @@ class FanucInterface(object):
     def pick(self, waste):   
 
         # Move to safe position above part
-        # rospy.loginfo('Moving to position above')
         self.move_to_pose(waste[0], waste[1], self.z_clear)
 
         # Open the gripper
-        # rospy.loginfo('Opening gripper')
         self.move_gripper('open')
 
         # Move down to part
-        # rospy.loginfo('Moving to waste')
         self.move_to_pose(waste[0], waste[1], self.z_waste)
 
         # Grab part
-        # rospy.loginfo('Grabbing waste')
         self.move_gripper('close')
 
         # Move up to clear conveyor
-        # rospy.loginfo('Moving up to clear')
         self.move_to_pose(waste[0], waste[1], self.z_clear)
 
 
@@ -194,11 +190,9 @@ class FanucInterface(object):
     def place(self, chute):   
 
         # Move to chute
-        # rospy.loginfo('Moving to chute')
         self.move_to_pose(chute[0], chute[1], self.z_chute)
 
         # Release part 
-        # rospy.loginfo('Releasing part')
         self.move_gripper('open')
 
 
@@ -250,6 +244,9 @@ def vision_callback(msg, robot):
 
     rospy.loginfo('Batch complete')
     print('')
+
+    # Home the robot
+    robot.go_to_preset('home')
 
     # Ready for next batch
     rospy.loginfo('Waiting for next batch...')
